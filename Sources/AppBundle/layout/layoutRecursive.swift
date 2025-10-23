@@ -57,11 +57,13 @@ extension TreeNode {
 private struct LayoutContext {
     let workspace: Workspace
     let resolvedGaps: ResolvedGaps
+    let centerSingleWindowConfig: CenterSingleWindowConfig?
 
     @MainActor
     init(_ workspace: Workspace) {
         self.workspace = workspace
         self.resolvedGaps = ResolvedGaps(gaps: config.gaps, monitor: workspace.workspaceMonitor)
+        self.centerSingleWindowConfig = config.centerSingleWindow
     }
 }
 
@@ -98,6 +100,39 @@ extension Window {
 extension TilingContainer {
     @MainActor
     fileprivate func layoutTiles(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
+        // Check if this is the root tiling container with a single window and centering is enabled
+        let isRootContainer = parent is Workspace
+        let hasSingleChild = children.count == 1
+        let shouldCenter = isRootContainer && hasSingleChild && context.centerSingleWindowConfig != nil
+        
+        if shouldCenter, let centerConfig = context.centerSingleWindowConfig, let child = children.first {
+            // Calculate centered dimensions
+            let maxWidth = width * CGFloat(centerConfig.widthPercent) / 100.0
+            let centeredWidth = min(maxWidth, width)
+            let xOffset = (width - centeredWidth) / 2
+            
+            let centeredPoint = CGPoint(x: point.x + xOffset, y: point.y)
+            
+            // Set the weight to match the available space
+            child.setWeight(.h, centeredWidth)
+            child.setWeight(.v, height)
+            
+            try await child.layoutRecursive(
+                centeredPoint,
+                width: centeredWidth,
+                height: height,
+                virtual: Rect(
+                    topLeftX: virtual.topLeftX + xOffset,
+                    topLeftY: virtual.topLeftY,
+                    width: centeredWidth,
+                    height: height
+                ),
+                context
+            )
+            return
+        }
+        
+        // Standard tiling layout for multiple windows or when centering is disabled
         var point = point
         var virtualPoint = virtual.topLeftCorner
 

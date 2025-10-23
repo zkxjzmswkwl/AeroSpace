@@ -56,7 +56,12 @@ struct Config: ConvenienceCopyable {
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
 
+    var centerSingleWindow: CenterSingleWindowConfig? = nil
     var preservedWorkspaceNames: [String] = []
+}
+
+struct CenterSingleWindowConfig: ConvenienceCopyable, Equatable, Sendable {
+    var widthPercent: Int
 }
 
 enum DefaultContainerOrientation: String {

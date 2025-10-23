@@ -113,6 +113,7 @@ private let configParser: [String: any ParserProtocol<Config>] = [
     "gaps": Parser(\.gaps, parseGaps),
     "workspace-to-monitor-force-assignment": Parser(\.workspaceToMonitorForceAssignment, parseWorkspaceToMonitorAssignment),
     "on-window-detected": Parser(\.onWindowDetected, parseOnWindowDetectedArray),
+    "center-single-window": Parser(\.centerSingleWindow, parseCenterSingleWindow),
 
     // Deprecated
     "non-empty-workspaces-root-containers-layout-on-startup": Parser(\._nonEmptyWorkspacesRootContainersLayoutOnStartup, parseStartupRootContainerLayout),
@@ -310,6 +311,27 @@ extension Parsed where Failure == String {
 
 func parseBool(_ raw: TOMLValueConvertible, _ backtrace: TomlBacktrace) -> ParsedToml<Bool> {
     raw.bool.orFailure(expectedActualTypeError(expected: .bool, actual: raw.type, backtrace))
+}
+
+private func parseCenterSingleWindow(_ raw: TOMLValueConvertible, _ backtrace: TomlBacktrace) -> ParsedToml<CenterSingleWindowConfig?> {
+    guard let table = raw.table else {
+        return .failure(expectedActualTypeError(expected: .table, actual: raw.type, backtrace))
+    }
+    
+    let widthPercentKey = "width-percent"
+    guard let widthPercentValue = table[widthPercentKey] else {
+        return .failure(.semantic(backtrace + .key(widthPercentKey), "Missing required key '\(widthPercentKey)'"))
+    }
+    
+    guard let widthPercent = widthPercentValue.int else {
+        return .failure(expectedActualTypeError(expected: .int, actual: widthPercentValue.type, backtrace + .key(widthPercentKey)))
+    }
+    
+    guard widthPercent >= 1 && widthPercent <= 100 else {
+        return .failure(.semantic(backtrace + .key(widthPercentKey), "width-percent must be between 1 and 100 (got \(widthPercent))"))
+    }
+    
+    return .success(CenterSingleWindowConfig(widthPercent: widthPercent))
 }
 
 indirect enum TomlBacktrace: CustomStringConvertible, Equatable {
