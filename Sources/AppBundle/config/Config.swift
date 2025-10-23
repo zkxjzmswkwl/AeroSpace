@@ -61,7 +61,7 @@ struct Config: ConvenienceCopyable {
 }
 
 struct CenterSingleWindowConfig: ConvenienceCopyable, Equatable, Sendable {
-    var widthPercent: Int
+    var widthPercent: Int // [__v(-_-)v__] big man big muscle!
 }
 
 enum DefaultContainerOrientation: String {
